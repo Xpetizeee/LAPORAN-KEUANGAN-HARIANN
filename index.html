@@ -40,6 +40,10 @@
                     </select>
                 </div>
                 <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-md shadow-sm hover:bg-indigo-700">Tambah Transaksi</button>
+
+<h5>
+                    ©Ninoo All rights reserved.  </h5>
+
             </form>
         </div>
 
@@ -60,10 +64,11 @@
             </div>
         </div>
 
-        <div class="flex justify-end mb-8">
-            <button onclick="clearAllData()" class="bg-red-600 text-white px-6 py-3 rounded-md shadow-sm hover:bg-red-700 mr-4">Hapus Semua Data</button>
-            <button onclick="saveAsPDF()" class="bg-green-600 text-white px-6 py-3 rounded-md shadow-sm hover:bg-green-700 mr-4">Simpan PDF</button>
-            <button onclick="updateTransactions()" class="bg-blue-600 text-white px-6 py-3 rounded-md shadow-sm hover:bg-blue-700">Update Transaksi</button>
+        <div class="flex flex-wrap justify-end mb-8 space-x-4">
+            <button onclick="clearAllData()" class="bg-red-600 text-white px-6 py-3 rounded-md shadow-sm hover:bg-red-700 mb-2">Hapus Semua Data</button>
+            <button onclick="saveAsPDF()" class="bg-green-600 text-white px-6 py-3 rounded-md shadow-sm hover:bg-green-700 mb-2">Simpan PDF</button>
+            <button onclick="updateTransactions()" class="bg-blue-600 text-white px-6 py-3 rounded-md shadow-sm hover:bg-blue-700 mb-2">Update Transaksi</button>
+            <button onclick="saveData()" class="bg-yellow-600 text-white px-6 py-3 rounded-md shadow-sm hover:bg-yellow-700 mb-2">Simpan Data</button>
         </div>
 
         <div class="bg-white p-8 rounded-lg shadow-lg overflow-x-auto mb-8">
@@ -131,9 +136,10 @@
                     </td>
                 `;
 
-                table.appendChild(row);
+                table.insertBefore(row, table.firstChild);
 
                 updateSummary();
+                saveData();
 
                 document.getElementById('financial-form').reset();
             } else {
@@ -156,6 +162,7 @@
 
             row.remove();
             updateSummary();
+            saveData();
         }
 
         function editRow(button) {
@@ -185,6 +192,7 @@
             totalIncome = 0;
             totalExpense = 0;
             updateSummary();
+            saveData();
         }
 
         function saveAsPDF() {
@@ -228,6 +236,58 @@
         function formatCurrency(amount) {
             return amount.toLocaleString('id-ID');
         }
+
+        function saveData() {
+            const transactions = [];
+            const rows = document.getElementById('report-table').getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const cells = rows[i].getElementsByTagName('td');
+                const transaction = {
+                    date: cells[0].innerText,
+                    description: cells[1].innerText,
+                    income: parseFloat(cells[2].innerText.replace(/[^0-9,-]+/g,"")) || 0,
+                    expense: parseFloat(cells[3].innerText.replace(/[^0-9,-]+/g,"")) || 0,
+                    balance: parseFloat(cells[4].innerText.replace(/[^0-9,-]+/g,""))
+                };
+                transactions.push(transaction);
+            }
+
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            localStorage.setItem('totalIncome', totalIncome);
+            localStorage.setItem('totalExpense', totalExpense);
+            localStorage.setItem('balance', balance);
+            alert('Data berhasil disimpan');
+        }
+
+        function loadData() {
+            const transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+            const table = document.getElementById('report-table');
+
+            transactions.forEach(transaction => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${transaction.date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${transaction.description}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(transaction.income)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(transaction.expense)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(transaction.balance)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <button class="text-red-600 hover:text-red-900" onclick="deleteRow(this)">Hapus</button>
+                        <button class="text-blue-600 hover:text-blue-900 ml-2" onclick="editRow(this)">Edit</button>
+                    </td>
+                `;
+                table.insertBefore(row, table.firstChild);
+            });
+
+            totalIncome = parseFloat(localStorage.getItem('totalIncome')) || 0;
+            totalExpense = parseFloat(localStorage.getItem('totalExpense')) || 0;
+            balance = parseFloat(localStorage.getItem('balance')) || 0;
+
+            updateSummary();
+        }
+
+        window.onload = loadData;
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 </body>
